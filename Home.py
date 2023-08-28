@@ -214,6 +214,10 @@ def get_model(model_type: str = 'tiny'):
     """
     Method to load Whisper model to disk
     """
+    print("Attempting to download Whisper")
+    with open("get_model_weights.py") as f:
+        exec(f.read())
+        
     try:
         print("--------------------------------------------")
         print("Attempting to load Whisper ...")
