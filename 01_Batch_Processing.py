@@ -24,14 +24,14 @@ language_mapping = {
     "English": 'en',
     "French": 'fr',
     "German": 'de',
-    "Luxembourgish": 'lu'
+    "Luxembourgish": 'lb'
 }
 
 models_path = {
     "en": r"./assets/models/whisper-small/",
     "fr": r"./assets/models/whisper-small/",
     "de": r"./assets/models/whisper-small/",
-    "lu": r"./assets/models/wav2vec2-large-xlsr-53-842h-luxembourgish-14h-with-lm/"
+    "lb": r"./assets/models/wav2vec2-large-xlsr-53-842h-luxembourgish-14h-with-lm/"
 }
 
 
@@ -153,7 +153,7 @@ def main():
                     video_to_audio(input_dir)
                     cut_audio()
                     get_transcripts()
-                    insert_subtitles()
+                    # insert_subtitles()
                 else:
                     st.warning("Please🙏 upload a relevant video file")
             elif input_mode == "Upload Audio File":
@@ -169,7 +169,7 @@ def main():
                     video_to_audio(input_dir)
                     cut_audio()
                     get_transcripts()
-                    insert_subtitles()
+                    # insert_subtitles()
                 else:
                     st.warning("Please🙏 enter a valid URL for Youtube video")
 
@@ -215,7 +215,7 @@ def get_str_segments():
             end = 'end'
 
         lang_str = [k for k, v in language_mapping.items() if v == chunk_dict['lang']][0]
-        text = '{} - From {} s to {} s : {}'.format(text, start, end, lang_str)
+        text = '{} \n- From {} s to {} s : {}'.format(text, start, end, lang_str)
 
     return text
 
@@ -320,36 +320,50 @@ def cut_audio():
 def load_models():
 
     try:
-        print("--------------------------------------------")
-        print("Attempting to load Model ...")
+
         models = {}
+        chunk_langs = list(set([chunk_dict['lang'] for chunk_dict in st.session_state["audio_chunks"].values()]))
+
         for lang, model_path in st.session_state["models_path"].items():
 
-            # load tokenizer
-            tokenizer_path = os.path.join(model_path, "tokenizer")
-            tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
+            if lang in chunk_langs:
 
-            # load feature_extractor
-            feature_extractor_path = os.path.join(model_path, "feature_extractor")
-            feature_extractor = AutoFeatureExtractor.from_pretrained(feature_extractor_path)
+                print("--------------------------------------------")
+                print("Attempting to load {} model ...".format(lang.upper()))
 
-            # load model
-            actual_model_path = os.path.join(model_path, "model")
-            if lang == 'lu':
-                model = AutoModelForCTC.from_pretrained(actual_model_path)
-            else:
-                # used for language detection as first step
-                model = WhisperForConditionalGeneration.from_pretrained(actual_model_path)
+                # load tokenizer
+                tokenizer_path = os.path.join(model_path, "tokenizer")
+                tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
+
+                # load feature_extractor
+                feature_extractor_path = os.path.join(model_path, "feature_extractor")
+                feature_extractor = AutoFeatureExtractor.from_pretrained(feature_extractor_path)
+
+                # load model
+                actual_model_path = os.path.join(model_path, "model")
+                if lang == 'lb':
+                    model = AutoModelForCTC.from_pretrained(actual_model_path)
+                else:
+                    # used for language detection as first step
+                    model = WhisperForConditionalGeneration.from_pretrained(actual_model_path)
+
                 generation_config = GenerationConfig.from_pretrained("openai/whisper-small")
                 generation_config.task_to_id = {"transcribe": 50359}
-                # generation_config.no_timestamps_token_id = 50363
+                generation_config.is_multilingual = False
+                generation_config.lang_to_id = {
+                    "<|de|>": 50261,
+                    "<|en|>": 50259,
+                    "<|fr|>": 50265,
+                    "<|lb|>": 50345,
+                }
                 model.generation_config = generation_config
+                # "no_timestamps_token_id": 50363,
 
-            models[lang] = {
-                "tokenizer": tokenizer,
-                "feature_extractor": feature_extractor,
-                "model": model
-            }
+                models[lang] = {
+                    "tokenizer": tokenizer,
+                    "feature_extractor": feature_extractor,
+                    "model": model
+                }
 
         print("Successfully loaded models")
 
@@ -392,6 +406,8 @@ def get_transcripts():
 
         transcript = {'text': '', 'segments': []}
 
+        last_timestamp = 0
+
         for chunk_dict in st.session_state["audio_chunks"].values():
 
             audio_path = chunk_dict['audio_path']
@@ -410,6 +426,8 @@ def get_transcripts():
                 # decoder=model["decoder"]
             )
 
+            generate_kwargs = {"task": "transcribe", "language": "<|{}|>".format(lang)}
+
             result = pipe(
                 # (https://huggingface.co/docs/transformers/v4.31.0/en/main_classes/pipelines#transformers.AutomaticSpeechRecognitionPipeline)
                 input_audio,
@@ -418,12 +436,13 @@ def get_transcripts():
                 stride_length_s=(6, 4),
                 max_new_tokens=448,
                 # batch_size=32,  # (https://huggingface.co/docs/transformers/main_classes/pipelines#pipeline-batching)
-                generate_kwargs={
-                    "task": "transcribe",
-                    # "task_to_id": {"transcribe": 50359},
-                    # "no_timestamps_token_id": 50363,
-                    # "language": "fr"
-                }  # otherwise it will transcribe AND translate in english
+                generate_kwargs=generate_kwargs
+                # generate_kwargs={
+                #     "task": "transcribe",
+                #     # "task_to_id": {"transcribe": 50359},
+                #     # "no_timestamps_token_id": 50363,
+                #     # "language": "fr"
+                # }  # otherwise it will transcribe AND translate in english
                 # generate_kwargs={"task": "transcribe", "language": "fr"}
             )
 
@@ -432,22 +451,32 @@ def get_transcripts():
             number_of_chunks = len(result["chunks"])  # 102
             words_per_segment = 10
             number_of_segments = int(number_of_chunks / words_per_segment)  # 10
-            for i in range(number_of_segments):
-                if (i + 1) * words_per_segment > number_of_chunks:
-                    if i * words_per_segment < number_of_chunks:
-                        current_chunks = result["chunks"][i * words_per_segment:]
-                else:
-                    current_chunks = result["chunks"][i * words_per_segment: (i + 1) * words_per_segment]
+            if number_of_segments > 0:
+                for i in range(number_of_segments):
+                    if (i + 1) * words_per_segment <= number_of_chunks:
+                        current_chunks = result["chunks"][i * words_per_segment: (i + 1) * words_per_segment]
+                    else:
+                        if i * words_per_segment < number_of_chunks:
+                            current_chunks = result["chunks"][i * words_per_segment:]
+                        else:
+                            current_chunks = [result["chunks"][i * words_per_segment]]
 
+                    start = current_chunks[0]['timestamp'][0]
+                    end = current_chunks[-1]['timestamp'][1]
+                    text = ' '.join([chunk['text'] for chunk in current_chunks])
+            else:
+                current_chunks = result["chunks"]
                 start = current_chunks[0]['timestamp'][0]
                 end = current_chunks[-1]['timestamp'][1]
                 text = ' '.join([chunk['text'] for chunk in current_chunks])
 
-                transcript['segments'].append({
-                    'start': start,
-                    'end': end,
-                    'text': text
-                })
+            transcript['segments'].append({
+                'start': start + last_timestamp,
+                'end': end + last_timestamp,
+                'text': text
+            })
+
+            last_timestamp = last_timestamp + end
 
         # audio = whisper.pad_or_trim()
 

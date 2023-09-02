@@ -2,4 +2,6 @@
 *.pt
 *.mp3
 *.mp4
-/assets/models/
+
+*.bin
+*.json
