@@ -175,7 +175,7 @@ def main():
 
     if st.session_state["transcript"] != "" and st.session_state["audio_chunks"] != {}:
         col1, col2 = st.columns([2, 2], gap="medium")
-        placeholder.empty()
+        # placeholder.empty()
             
         # Display the generated Transcripts
         with col1:
@@ -298,22 +298,30 @@ def grab_youtube_video(url: str, input_dir: pathlib.Path):
 
 
 def cut_audio():
+    try:
+        print("--------------------------------------------")
+        print("Attempting to cut audio into chunks ...")
+        audio = AudioFileClip(st.session_state["audio_file_path"])
 
-    audio = AudioFileClip(st.session_state["audio_file_path"])
+        audio_duration = audio.duration
 
-    audio_duration = audio.duration
+        for chunk_range, chunk_dict in st.session_state["audio_chunks"].items():
 
-    for chunk_range, chunk_dict in st.session_state["audio_chunks"].items():
+            start, end = chunk_range.split('_')
+            if end == '-1':
+                end = audio_duration
+            sub_audio = audio.subclip(start, end)
 
-        start, end = chunk_range.split('_')
-        if end == '-1':
-            end = audio_duration
-        sub_audio = audio.subclip(start, end)
+            sub_audio_name = '{}_{}_audio.mp3'.format(start, end)
+            sub_audio_path = os.path.join(os.path.dirname(st.session_state["audio_file_path"]), sub_audio_name)
+            sub_audio.write_audiofile(sub_audio_path)
+            st.session_state["audio_chunks"][chunk_range]['audio_path'] = sub_audio_path
 
-        sub_audio_name = '{}_{}_audio.mp3'.format(start, end)
-        sub_audio_path = os.path.join(os.path.dirname(st.session_state["audio_file_path"]), sub_audio_name)
-        sub_audio.write_audiofile(sub_audio_path)
-        st.session_state["audio_chunks"][chunk_range]['audio_path'] = sub_audio_path
+        print("Successfully cut audio into chunks")
+
+    except Exception as e:
+        print(repr(e))
+        st.error("😿 Failed to cut audio into chunks")
 
 
 # @st.cache
