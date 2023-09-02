@@ -7,7 +7,7 @@ import re
 import pandas as pd
 
 
-def css_local(filepath:str):
+def css_local(filepath: str):
     """
     Method to load the desired stylesheet from the given filepath
     """ 

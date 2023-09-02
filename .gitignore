@@ -1,1 +1,5 @@
 .idea/
+*.pt
+*.mp3
+*.mp4
+/assets/models/
