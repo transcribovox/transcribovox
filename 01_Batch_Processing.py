@@ -153,7 +153,7 @@ def main():
                     video_to_audio(input_dir)
                     cut_audio()
                     get_transcripts()
-                    # insert_subtitles()
+                    insert_subtitles()
                 else:
                     st.warning("Please🙏 upload a relevant video file")
             elif input_mode == "Upload Audio File":
@@ -169,7 +169,7 @@ def main():
                     video_to_audio(input_dir)
                     cut_audio()
                     get_transcripts()
-                    # insert_subtitles()
+                    insert_subtitles()
                 else:
                     st.warning("Please🙏 enter a valid URL for Youtube video")
 
