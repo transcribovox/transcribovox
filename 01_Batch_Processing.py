@@ -54,20 +54,20 @@ def main():
     st.title("Transcribo Vox - Batch Processing")
     hide_footer()
     # Load and display animation
-    placeholder = st.empty()
-    with placeholder.container():
-        anim = lottie_local("assets/animations/transcriber.json")
-        st_lottie(
-            anim,
-            speed=1,
-            reverse=False,
-            loop=True,
-            quality="medium",  # low; medium ; high
-            # renderer="svg",  # canvas
-            height=400,
-            width=400,
-            key=None
-        )
+    # placeholder = st.empty()
+    # with placeholder.container():
+    #     anim = lottie_local("assets/animations/transcriber.json")
+    #     st_lottie(
+    #         anim,
+    #         speed=1,
+    #         reverse=False,
+    #         loop=True,
+    #         quality="medium",  # low; medium ; high
+    #         # renderer="svg",  # canvas
+    #         height=400,
+    #         width=400,
+    #         key=None
+    #     )
 
     # Initialize Session State Variables
     if "page_index" not in st.session_state:
