@@ -1,5 +1,5 @@
 import streamlit as st
-import streamlit_lottie
+from streamlit.logger import get_logger
 import streamlit_scrollable_textbox as stx
 import pathlib
 import requests
@@ -19,6 +19,7 @@ import os
 
 from utils import *
 
+logger = get_logger(__name__)
 
 language_mapping = {
     "English": 'en',
@@ -225,8 +226,8 @@ def grab_uploaded_file(uploaded_file, input_dir: pathlib.Path):
     Method to store the uploaded file to server
     """
     try:
-        print("--------------------------------------------")
-        print("Attempting to load uploaded file ...")
+        logger.info("--------------------------------------------")
+        logger.info("Attempting to load uploaded file ...")
         # Extract file format
         upload_name = uploaded_file.name
         upload_format = upload_name.split(".")[-1]
@@ -245,10 +246,10 @@ def grab_uploaded_file(uploaded_file, input_dir: pathlib.Path):
         with open(st.session_state[file_path_key], "wb") as f:
             f.write(uploaded_file.read())
 
-        print("Successfully loaded uploaded file")
+        logger.info("Successfully loaded uploaded file")
 
     except Exception as e:
-        print(repr(e))
+        logger.info(repr(e))
         st.error("😿 Failed to load uploaded file")
 
 
@@ -257,8 +258,8 @@ def video_to_audio(input_dir: pathlib.Path):
     Method to convert video into audio
     """
     try:
-        print("--------------------------------------------")
-        print("Attempting to convert video into audio ...")
+        logger.info("--------------------------------------------")
+        logger.info("Attempting to convert video into audio ...")
 
         audio = AudioFileClip(st.session_state["video_file_path"])
 
@@ -271,10 +272,10 @@ def video_to_audio(input_dir: pathlib.Path):
 
         # duration = audio.duration
 
-        print("Successfully converted video into audio")
+        logger.info("Successfully converted video into audio")
 
     except Exception as e:
-        print(repr(e))
+        logger.info(repr(e))
         st.error("😿 Failed to load uploaded file")
 
 
@@ -283,24 +284,24 @@ def grab_youtube_video(url: str, input_dir: pathlib.Path):
     Method to fetch the audio codec of a Youtube video and save it to server
     """
     try:
-        print("--------------------------------------------")
-        print("Attempting to fetch video from Youtube ...")
+        logger.info("--------------------------------------------")
+        logger.info("Attempting to fetch video from Youtube ...")
         yt = YouTube(url, use_oauth=True, allow_oauth_cache=True)
         video = yt.streams.get_highest_resolution()
         video.download(input_dir, filename="video.mp4")
 
-        print("Successfully fetched video from Youtube")
+        logger.info("Successfully fetched video from Youtube")
         st.session_state["video_file_path"] = os.path.join(input_dir, "video.mp4")
 
     except Exception as e:
-        print(repr(e))
+        logger.info(repr(e))
         st.error("😿 Failed to fetch video from YouTube")
 
 
 def cut_audio():
     try:
-        print("--------------------------------------------")
-        print("Attempting to cut audio into chunks ...")
+        logger.info("--------------------------------------------")
+        logger.info("Attempting to cut audio into chunks ...")
         audio = AudioFileClip(st.session_state["audio_file_path"])
 
         audio_duration = audio.duration
@@ -317,10 +318,10 @@ def cut_audio():
             sub_audio.write_audiofile(sub_audio_path)
             st.session_state["audio_chunks"][chunk_range]['audio_path'] = sub_audio_path
 
-        print("Successfully cut audio into chunks")
+        logger.info("Successfully cut audio into chunks")
 
     except Exception as e:
-        print(repr(e))
+        logger.info(repr(e))
         st.error("😿 Failed to cut audio into chunks")
 
 
@@ -336,8 +337,8 @@ def load_models():
 
             if lang in chunk_langs:
 
-                print("--------------------------------------------")
-                print("Attempting to load {} model ...".format(lang.upper()))
+                logger.info("--------------------------------------------")
+                logger.info("Attempting to load {} model ...".format(lang.upper()))
 
                 # load tokenizer
                 tokenizer_path = os.path.join(model_path, "tokenizer")
@@ -373,7 +374,7 @@ def load_models():
                     "model": model
                 }
 
-        print("Successfully loaded models")
+        logger.info("Successfully loaded models")
 
         # load decoder
         # decoder_path = os.path.join(model_path, "decoder")
@@ -398,7 +399,7 @@ def load_models():
         return models
 
     except Exception as e:
-        print(repr(e))
+        logger.info(repr(e))
         st.error("😿 Failed to load model")
 
 
@@ -409,8 +410,8 @@ def get_transcripts():
     try:
         models = load_models()
 
-        print("--------------------------------------------")
-        print("Attempting to generate transcripts ...")
+        logger.info("--------------------------------------------")
+        logger.info("Attempting to generate transcripts ...")
 
         transcript = {'text': '', 'segments': []}
 
@@ -488,10 +489,10 @@ def get_transcripts():
 
         # audio = whisper.pad_or_trim()
 
-        # print("--------------------------------------------")
-        # print("Attempting to generate transcripts ...")
+        # logger.info("--------------------------------------------")
+        # logger.info("Attempting to generate transcripts ...")
         # result = model.transcribe(audio)
-        print("Successfully generated transcripts")
+        logger.info("Successfully generated transcripts")
         # Grab the text and update it in session state for the app
         st.session_state["transcript"] = transcript
         # st.session_state["segments"] = segments
@@ -501,7 +502,7 @@ def get_transcripts():
         st.session_state["srt_file_path"] = os.path.join('output', 'audio.srt')
 
     except Exception as e:
-        print(repr(e))
+        logger.info(repr(e))
         st.error("😿 Model Failed to generate transcripts")
 
 
@@ -542,8 +543,8 @@ def create_transcript_files():
 
 
 def insert_subtitles():
-    print("--------------------------------------------")
-    print("Attempting to insert subtitles ...")
+    logger.info("--------------------------------------------")
+    logger.info("Attempting to insert subtitles ...")
     generator = lambda txt: TextClip(txt, font='Arial', fontsize=30, color='white')
     subs = SubtitlesClip(st.session_state["srt_file_path"], generator)
     subtitles = SubtitlesClip(subs, generator)
@@ -554,7 +555,7 @@ def insert_subtitles():
     output_dir = 'output'
     st.session_state["sub_video_file_path"] = os.path.join(output_dir, 'sub_video.mp4')
     result.write_videofile(st.session_state["sub_video_file_path"])
-    print("Successfully inserted subtitles")
+    logger.info("Successfully inserted subtitles")
     st.balloons()
 
 
