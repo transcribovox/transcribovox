@@ -5,7 +5,6 @@ attrs==23.1.0
 audioread==3.0.0
 av==10.0.0
 blinker==1.6.2
-bokeh==3.2.2
 cachetools==5.3.1
 certifi==2023.7.22
 cffi==1.15.1
@@ -91,7 +90,6 @@ soundfile==0.12.1
 soxr==0.3.6
 streamlit==1.26.0
 streamlit-bokeh-events==0.1.2
-streamlit-lottie==0.0.5
 streamlit-scrollable-textbox==0.0.3
 streamlit-webrtc==0.47.0
 sympy==1.12

@@ -2,13 +2,8 @@
 Contact Page using formsubmit.co API
 """
 import streamlit as st
-from st_custom_components import st_audiorec
 from utils import *
-from io import BytesIO
-import streamlit.components.v1 as components
-import bokeh
-from bokeh.models import CustomJS
-from streamlit_bokeh_events import streamlit_bokeh_events
+
 
 st.set_page_config(
         page_title="AI Audio Transciber",
